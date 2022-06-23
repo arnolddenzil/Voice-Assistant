@@ -1,13 +1,40 @@
 import speech_recognition as sr
 from wit import Wit
-import pyttsx3
 import json
 from operations import *
-import pywhatkit
-import datetime
 import wikipedia
-import pyjokes
+import win32api
+import win32gui
+from pynput import keyboard
+from threading import Thread
 
+WM_APPCOMMAND = 0x319
+APPCOMMAND_MICROPHONE_VOLUME_MUTE = 0x180000
+
+hwnd_active = win32gui.GetForegroundWindow()
+
+def mic_toggler():
+    def on_press(key):
+        if key == keyboard.Key.esc:
+            return False  # stop listener
+        try:
+            k = key.char  # single-char keys
+        except:
+            k = key.name  # other keys
+
+        if k in ['1', '2', 'left', 'right', 'space']:  # keys of interest
+
+            # self.keys.append(k)  # store it in global-like variable
+            print('Key pressed: ' + k)
+            win32api.SendMessage(hwnd_active, WM_APPCOMMAND, None, APPCOMMAND_MICROPHONE_VOLUME_MUTE)
+            # return False  # stop listener; remove this if want more keys
+
+    listener = keyboard.Listener(on_press=on_press)
+    listener.start()  # start to listen on a separate thread
+    print("Started listening for keyboard interrupt for mic toggling")
+    listener.join()  # remove if main thread is polling self.keys
+
+Thread(target=mic_toggler).start()
 
 # Initialize listener instance
 listener = sr.Recognizer()
@@ -47,9 +74,9 @@ def take_command():
     try:
         # Listens for speach and when it recognizes, it creates an audio file of the speach
         with sr.Microphone() as source:
-            listener.adjust_for_ambient_noise(source, duration=1)
+            listener.adjust_for_ambient_noise(source, duration=3)
             if c == 0:
-                talk("Initialization Complete. Hello my name is Athena and I have started listening.")
+                talk("Initialization Complete. listening.")
                 c += 1
             print("Listening ...")
             audio_file = listener.listen(source=source)
